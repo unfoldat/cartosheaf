@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>멘토비 정산 ✎</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --postit: #fdf082;
+    --ink: #1a1a1a;
+    --ink-soft: #5a5a5a;
+    --meta: #9a8f4a;
+    --link: #3a5fcd;
+    --link-soft: #5e7fd9;
+    --highlight: #fffac8;
+    --done: #b0a050;
+    --danger: #c0392b;
+    --note-bg: rgba(255,255,255,0.55);
+    --block-bg: rgba(255,255,255,0.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 60px 20px 120px;
+    background: #e8e3d4;
+    background-image:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4), transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(180,170,140,0.15), transparent 50%);
+    min-height: 100vh;
+    font-family: 'Pretendard Variable', Pretendard, sans-serif;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+
+  .postit {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--postit);
+    padding: 36px 40px 44px;
+    box-shadow:
+      0 1px 1px rgba(0,0,0,0.08),
+      0 4px 4px rgba(0,0,0,0.06),
+      0 10px 16px -6px rgba(80,70,30,0.25),
+      0 30px 40px -20px rgba(60,50,20,0.3);
+    position: relative;
+    transform: rotate(-0.2deg);
+    background-image: linear-gradient(135deg,
+      transparent 0%, transparent 90%,
+      rgba(0,0,0,0.03) 95%, rgba(0,0,0,0.07) 100%);
+  }
+  .postit::after {
+    content: "";
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.08) 51%, rgba(0,0,0,0.18) 100%);
+  }
+
+  /* 헤더 */
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .src-toggle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--meta);
+    cursor: pointer;
+    user-select: none;
+    padding: 3px 10px;
+    border: 1px solid var(--meta);
+    border-radius: 2px;
+    background: transparent;
+    letter-spacing: 0.05em;
+  }
+  .src-toggle:hover { background: rgba(255,255,255,0.4); }
+  .src-toggle.on { background: var(--ink); color: var(--postit); border-color: var(--ink); }
+
+  .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--meta);
+    margin: 0 0 16px;
+    letter-spacing: 0.05em;
+  }
+
+  /* 요약 2컬럼 */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .summary-card {
+    background: var(--block-bg);
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 3px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+  .summary-card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* 진행도 */
+  .progress-box {
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.35);
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 2px;
+  }
+  .progress-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+  }
+  .progress-label { color: var(--ink-soft); }
+  .progress-count { color: var(--ink); font-weight: 500; }
+  .progress-count.full { color: var(--link); }
+  .progress-bar-bg {
+    height: 5px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--ink);
+    width: 0%;
+    transition: width 0.3s ease, background 0.3s;
+  }
+  .progress-bar-fill.full { background: var(--link); }
+
+  /* 2컬럼 본문 */
+  .body-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .col { min-width: 0; }
+
+  /* 섹션 헤더 */
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: var(--ink);
+    margin: 24px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    text-transform: uppercase;
+  }
+  .col h2:first-child { margin-top: 0; }
+  h2 .section-count {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--meta);
+    font-weight: 400;
+    text-transform: none;
+  }
+  h2.done .section-count { color: var(--done); }
+  h2.done .section-count::after { content: " ✓"; }
+
+  /* 소제목 */
+  h3.sub-head {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--ink-soft);
+    margin: 14px 0 6px;
+    padding: 4px 8px;
+    background: var(--block-bg);
+    border-radius: 2px;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+
+  /* 퀘스트 줄 */
+  .quest {
+    display: flex;
+    align-items: flex-start;
+    padding: 4px 0;
+    gap: 8px;
+    position: relative;
+    border-radius: 2px;
+    flex-wrap: wrap;
+  }
+  .quest:hover { background: rgba(255,255,255,0.3); }
+  .quest:target { background: var(--highlight); }
+
+  /* 체크박스 */
+  .quest input[type="checkbox"].box {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--ink);
+    background: transparent;
+    margin: 4px 0 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 1px;
+  }
+  .quest input[type="checkbox"].box:checked::after {
+    content: "✕";
+    position: absolute;
+    top: -6px; left: -1px;
+    font-size: 18px;
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 1;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .quest input.box:checked ~ .label { color: var(--done); text-decoration: line-through; }
+
+  .quest.info .indent { width: 14px; flex-shrink: 0; margin-top: 4px; }
+
+  .label {
+    flex: 1;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    min-width: 0;
+  }
+  .quest.info .label { cursor: default; font-size: 13.5px; }
+
+  /* 일련번호 */
+  .seq {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-right: 4px;
+    font-weight: 500;
+  }
+
+  /* 참고 토글 */
+  .note-toggle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--link-soft);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-top: 2px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .note-toggle:hover { background: rgba(58,95,205,0.12); color: var(--link); }
+  .note-toggle[aria-expanded="true"] { background: rgba(58,95,205,0.15); color: var(--link); }
+
+  .note {
+    flex-basis: 100%;
+    margin: 2px 0 4px 22px;
+    padding: 8px 12px;
+    background: var(--note-bg);
+    border-left: 2px solid var(--link-soft);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+    display: none;
+  }
+  .note.show { display: block; }
+  .note code {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 11.5px;
+    color: var(--ink);
+  }
+
+  /* 인라인 양식 링크 */
+  .form-link {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ink-soft);
+    padding-bottom: 1px;
+    font-weight: 600;
+  }
+  .form-link:hover {
+    color: var(--link);
+    border-bottom-color: var(--link);
+    background: rgba(58,95,205,0.06);
+  }
+
+  /* 항상 펼쳐진 정보 블록 (증빙사진용) */
+  .info-block {
+    margin: 4px 0 8px 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+  .info-block .info-item {
+    padding: 8px 12px;
+    border-radius: 2px;
+    background: transparent;
+  }
+  .info-block .info-item + .info-item {
+    margin-top: 4px;
+  }
+  .info-block .info-head {
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 3px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-block .info-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--meta);
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .info-block .where-q {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--meta);
+    letter-spacing: 0.08em;
+    margin-right: 4px;
+  }
+
+  /* 불가 */
+  .danger { color: var(--danger); font-weight: 700; }
+
+  /* 메타 (출처) */
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--meta);
+    display: none;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    flex-basis: 100%;
+    padding-left: 22px;
+  }
+  body.show-src .meta { display: flex; flex-wrap: wrap; }
+  .anchor { color: var(--meta); text-decoration: none; cursor: pointer; padding: 0 2px; }
+  .anchor:hover { color: var(--ink); background: rgba(255,255,255,0.5); }
+  .src { color: var(--link); text-decoration: none; border-bottom: 1px dotted var(--link); }
+  .src:hover { background: rgba(58,95,205,0.1); }
+  .src.cafe::before { content: "☕ "; opacity: 0.7; }
+  .src.pdf::before  { content: "📄 "; opacity: 0.7; }
+  .src.manual::before { content: "📘 "; opacity: 0.7; }
+
+  /* 완료 카드 */
+  .completion {
+    margin: 16px 0 0;
+    padding: 12px 16px;
+    background: rgba(58,95,205,0.08);
+    border: 1.5px solid var(--link);
+    border-radius: 2px;
+    font-size: 13.5px;
+    display: none;
+    grid-column: 1 / -1;
+  }
+  .completion.show { display: block; }
+  .completion .check {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--link);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  /* 푸터 */
+  .footer {
+    margin-top: 24px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(0,0,0,0.2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--meta);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer a { color: var(--link); text-decoration: none; cursor: pointer; }
+  .footer a:hover { text-decoration: underline; }
+
+  .toast {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--postit);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 680px) {
+    body { padding: 20px 12px 80px; }
+    .postit { padding: 24px 20px 36px; transform: none; }
+    .summary-grid, .body-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 17px; }
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .postit { box-shadow: none; transform: none; }
+    .src-toggle { display: none; }
+    .meta { display: flex !important; }
+    .note { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="postit">
+
+  <!-- 헤더 -->
+  <div class="top">
+    <h1>멘토비 정산 ✎</h1>
+    <button class="src-toggle" id="srcToggle" aria-pressed="false">[ 출처 보기 ]</button>
+  </div>
+  <p class="sub">멘토링 끝나면 → 7일 안에 이거 다 하기</p>
+
+  <!-- 요약 2컬럼 -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-card-label">제출할 것</div>
+      1. <a href="docs/participant-manual.pdf#page=36" target="_blank" class="form-link">[수당지급신청서]</a> — 정산시스템 + 웹하드 (2곳)<br>
+      2. 지출증빙 — 정산시스템
+    </div>
+    <div class="summary-card">
+      <div class="summary-card-label">준비물</div>
+      멘토링 당일 사진 찍기!<br>
+      1. 활동사진 (참여 인원 전원)<br>
+      2. 산출물 캡쳐 (화상회의 등)
+    </div>
+  </div>
+
+  <!-- 진행도 -->
+  <div class="progress-box">
+    <div class="progress-top">
+      <span class="progress-label">PROGRESS</span>
+      <span class="progress-count"><span id="checkedCount">0</span> / <span id="totalCount">0</span></span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- 2컬럼 본문 -->
+  <div class="body-grid">
+
+    <!-- ===== 좌측 컬럼 ===== -->
+    <div class="col">
+
+      <!-- 일정 -->
+      <h2>일정<span class="section-count"></span></h2>
+
+      <div class="quest info" id="w1">
+        <span class="indent"></span>
+        <span class="label"><span class="seq">1.</span> 제출 기한: 멘토링 후 <b>7일 이내</b></span>
+        <span class="meta">
+          <a href="#w1" class="anchor" data-copy="#w1">#w1</a>
+          <a href="docs/settlement-guide.pdf#page=55" target="_blank" class="src pdf">가이드 55p</a>
+        </span>
+      </div>
+
+      <div class="quest info" id="w2">
+        <span class="indent"></span>
+        <span class="label"><span class="seq">2.</span> 수당 지급: <b>제출완료된 달의 다음달 10일</b> → 운영사가 멘토에게 직접 지급</span>
+        <span class="meta">
+          <a href="#w2" class="anchor" data-copy="#w2">#w2</a>
+          <a href="docs/settlement-guide.pdf#page=55" target="_blank" class="src pdf">가이드 55p</a>
+          <a href="docs/participant-manual.pdf#page=26" target="_blank" class="src manual">매뉴얼 26p</a>
+        </span>
+      </div>
+
+      <div class="quest info" id="w3">
+        <span class="indent"></span>
+        <button class="note-toggle" data-target="n-w3" aria-expanded="false" style="font-size:12px; color:var(--ink-soft);">q. 멘토링비 언제 빠져나가지?</button>
+        <div class="note" id="n-w3">
+          <span style="font-size:12px;">cf) 멘토링비 제외한 금액이 사후지원금에서 차감되어 지급됨.<br>세금이슈로 운영사가 멘토에게 직접 지급하는 구조.</span>
+        </div>
+        <span class="meta">
+          <a href="#w3" class="anchor" data-copy="#w3">#w3</a>
+          <a href="docs/settlement-guide.pdf#page=55" target="_blank" class="src pdf">가이드 55p · 필수사항 2</a>
+        </span>
+      </div>
+
+      <!-- WHAT -->
+      <h2>WHAT · 제출 서류<span class="section-count"></span></h2>
+
+      <div class="quest" id="d1">
+        <input type="checkbox" class="box" data-key="d1">
+        <span class="label"><span class="seq">1.</span> <a href="docs/settlement-guide.pdf#page=57" target="_blank" class="form-link">지출증빙</a> → 정산시스템</span>
+        <span class="meta">
+          <a href="#d1" class="anchor" data-copy="#d1">#d1</a>
+          <a href="docs/settlement-guide.pdf#page=57" target="_blank" class="src pdf">가이드 57p</a>
+        </span>
+      </div>
+
+      <div class="quest" id="d2">
+        <input type="checkbox" class="box" data-key="d2">
+        <span class="label"><span class="seq">2.</span> <a href="docs/participant-manual.pdf#page=36" target="_blank" class="form-link">[수당지급신청서]</a> → 정산시스템 + 웹하드</span>
+        <button class="note-toggle" data-target="n-d2" aria-expanded="false">양식 위치</button>
+        <div class="note" id="n-d2">
+          양식: <b>참여자용 매뉴얼 36p</b> (위 텍스트 클릭 시 이동)<br>
+          <span style="color:var(--meta)">멘토와 멘티가 함께 작성하여 제출.</span>
+        </div>
+        <span class="meta">
+          <a href="#d2" class="anchor" data-copy="#d2">#d2</a>
+          <a href="docs/participant-manual.pdf#page=36" target="_blank" class="src manual">매뉴얼 36p</a>
+        </span>
+      </div>
+
+      <!-- HOW -->
+      <h2>HOW · 제출 방법<span class="section-count"></span></h2>
+
+      <h3 class="sub-head">1. 정산시스템</h3>
+
+      <div class="quest" id="s1">
+        <input type="checkbox" class="box" data-key="s1">
+        <span class="label"><span class="seq">1.</span> <a href="docs/settlement-guide.pdf#page=57" target="_blank" class="form-link">지출증빙</a> 작성</span>
+        <span class="meta">
+          <a href="#s1" class="anchor" data-copy="#s1">#s1</a>
+          <a href="docs/settlement-guide.pdf#page=57" target="_blank" class="src pdf">가이드 57p</a>
+        </span>
+      </div>
+
+      <div class="quest" id="s2">
+        <input type="checkbox" class="box" data-key="s2">
+        <span class="label"><span class="seq">2.</span> 「영수증 업로드」란 → 활동사진 첨부</span>
+        <span class="meta">
+          <a href="#s2" class="anchor" data-copy="#s2">#s2</a>
+          <a href="docs/settlement-guide.pdf#page=56" target="_blank" class="src pdf">가이드 56p</a>
+        </span>
+      </div>
+
+      <div class="quest" id="s3">
+        <input type="checkbox" class="box" data-key="s3">
+        <span class="label"><span class="seq">3.</span> 「추가서류 업로드」란 → <a href="docs/participant-manual.pdf#page=36" target="_blank" class="form-link">[수당지급신청서]</a> 첨부</span>
+        <span class="meta">
+          <a href="#s3" class="anchor" data-copy="#s3">#s3</a>
+          <a href="docs/settlement-guide.pdf#page=56" target="_blank" class="src pdf">가이드 56p</a>
+        </span>
+      </div>
+
+      <h3 class="sub-head">2. 웹하드</h3>
+
+      <div class="quest" id="h1">
+        <input type="checkbox" class="box" data-key="h1">
+        <span class="label"><span class="seq">1.</span> 동일한 <a href="docs/participant-manual.pdf#page=36" target="_blank" class="form-link">[수당지급신청서]</a>를 웹하드에 한 번 더 업로드</span>
+        <button class="note-toggle" data-target="n-h1" aria-expanded="false">경로/파일명</button>
+        <div class="note" id="n-h1">
+          <b>경로:</b> 신청서 → 멘토 수당지급 신청서 → 권역/반<br>
+          <b>파일명:</b> <code>멘토 수당 지급 신청서 _26수원주중1반김청년_1회차</code>
+        </div>
+        <span class="meta">
+          <a href="#h1" class="anchor" data-copy="#h1">#h1</a>
+          <a href="docs/settlement-guide.pdf#page=55" target="_blank" class="src pdf">가이드 55p</a>
+        </span>
+      </div>
+
+    </div><!-- /col left -->
+
+    <!-- ===== 우측 컬럼 ===== -->
+    <div class="col">
+
+      <!-- 증빙사진 -->
+      <h2>증빙사진 · 멘토링 진행 시 찍으세요<span class="section-count"></span></h2>
+
+      <div class="quest" id="p1">
+        <input type="checkbox" class="box" data-key="p1">
+        <span class="label">멘토링 중 <b>사진 찍기</b></span>
+        <span class="meta">
+          <a href="#p1" class="anchor" data-copy="#p1">#p1</a>
+          <a href="docs/settlement-guide.pdf#page=56" target="_blank" class="src pdf">가이드 56p</a>
+        </span>
+      </div>
+
+      <div class="info-block">
+        <div class="info-item">
+          <div class="info-head"><span class="seq">1.</span> 활동사진 <span class="info-tag">멘토링 진행사진 — 참여자 전원이 나오게</span></div>
+          <div>
+            <span class="where-q">어디 써?</span>
+            ① <a href="docs/participant-manual.pdf#page=36" target="_blank" class="form-link">[수당지급신청서]</a>의 「증빙사진 - 활동사진」 란<br>
+            <span style="padding-left:46px;">② 정산시스템 「영수증 업로드」란 — 멘토링 진행 사진 첨부</span>
+          </div>
+        </div>
+        <div class="info-item" style="margin-top:8px;">
+          <div class="info-head"><span class="seq">2.</span> 산출물 <span class="info-tag">예: 온라인 화상회의 캡쳐 등</span></div>
+          <div>
+            <span class="where-q">어디 써?</span>
+            <a href="docs/participant-manual.pdf#page=36" target="_blank" class="form-link">[수당지급신청서]</a>의 「증빙사진 - 산출물」 란
+          </div>
+        </div>
+      </div>
+
+      <!-- 참고 -->
+      <h2>참고<span class="section-count"></span></h2>
+
+      <div class="quest info" id="x1">
+        <span class="indent"></span>
+        <span class="label">팀의 경우</span>
+        <button class="note-toggle" data-target="n-x1" aria-expanded="false">팀 처리</button>
+        <div class="note" id="n-x1">
+          예산표 내 '멘토링비' 세목 집행하는 참여자가 직접 작성 후 제출<br>
+          <span style="color:var(--meta)">([수당지급신청서] 하단 안내사항 참고)</span>
+        </div>
+      </div>
+
+      <div class="quest info" id="x2">
+        <span class="indent"></span>
+        <span class="label">예산보다 멘토링 적게 받는 경우</span>
+        <button class="note-toggle" data-target="n-x2" aria-expanded="false">잔액 처리</button>
+        <div class="note" id="n-x2">
+          <b>최소 1회만 진행</b>해도 OK.<br>
+          단, 멘토링비 <b class="danger">잔액을 다른 세목으로 변경/이동 불가</b>.
+        </div>
+        <span class="meta">
+          <a href="#x2" class="anchor" data-copy="#x2">#x2</a>
+          <a href="https://cafe.naver.com/f-e/cafes/31478531/articles/4286" target="_blank" class="src cafe">네이버 카페 · 멘토링 Q2</a>
+        </span>
+      </div>
+
+    </div><!-- /col right -->
+
+    <!-- 완료 카드 (full width) -->
+    <div class="completion" id="completion">
+      <div class="check">✓ ALL DONE</div>
+      제출 완료. 다음달 10일에 멘토에게 수당 입금. 내 지원금은 멘토링비 차감 후 들어옴.
+    </div>
+
+  </div><!-- /body-grid -->
+
+  <div class="footer">
+    <span>v6 · CartoSheaf</span>
+    <a id="reset">[ 체크 초기화 ]</a>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">복사됨</div>
+
+<script>
+  const boxes = document.querySelectorAll('input.box');
+
+  boxes.forEach(box => {
+    const key = 'mfee_' + box.dataset.key;
+    box.checked = localStorage.getItem(key) === '1';
+    box.addEventListener('change', () => {
+      localStorage.setItem(key, box.checked ? '1' : '0');
+      updateProgress();
+    });
+  });
+
+  function updateProgress() {
+    const total = boxes.length;
+    const checked = document.querySelectorAll('input.box:checked').length;
+    document.getElementById('checkedCount').textContent = checked;
+    document.getElementById('totalCount').textContent = total;
+    const bar = document.getElementById('progressBar');
+    const pct = total > 0 ? (checked / total) * 100 : 0;
+    bar.style.width = pct + '%';
+    const full = (checked === total && total > 0);
+    bar.classList.toggle('full', full);
+    document.querySelector('.progress-count').classList.toggle('full', full);
+    document.getElementById('completion').classList.toggle('show', full);
+
+    document.querySelectorAll('h2').forEach(h => {
+      const countEl = h.querySelector('.section-count');
+      if (!countEl) return;
+      let c = 0, t = 0;
+      let el = h.nextElementSibling;
+      while (el && !el.matches('h2')) {
+        if (el.classList && el.classList.contains('quest')) {
+          const b = el.querySelector('input.box');
+          if (b) { t++; if (b.checked) c++; }
+        }
+        // info-block 안에는 체크박스 없음 — skip
+        el = el.nextElementSibling;
+      }
+      countEl.textContent = t > 0 ? c + '/' + t : '';
+      h.classList.toggle('done', t > 0 && c === t);
+    });
+  }
+  updateProgress();
+
+  document.querySelectorAll('.quest .label').forEach(label => {
+    label.addEventListener('click', () => {
+      const box = label.parentElement.querySelector('input.box');
+      if (box) { box.checked = !box.checked; box.dispatchEvent(new Event('change')); }
+    });
+  });
+
+  document.querySelectorAll('.note-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      const open = target.classList.toggle('show');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+
+  const srcToggle = document.getElementById('srcToggle');
+  const SRC_KEY = 'mfee_showsrc';
+  if (localStorage.getItem(SRC_KEY) === '1') {
+    document.body.classList.add('show-src');
+    srcToggle.classList.add('on');
+    srcToggle.textContent = '[ 출처 끄기 ]';
+    srcToggle.setAttribute('aria-pressed', 'true');
+  }
+  srcToggle.addEventListener('click', () => {
+    const on = document.body.classList.toggle('show-src');
+    srcToggle.classList.toggle('on', on);
+    srcToggle.textContent = on ? '[ 출처 끄기 ]' : '[ 출처 보기 ]';
+    srcToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    localStorage.setItem(SRC_KEY, on ? '1' : '0');
+  });
+
+  const toast = document.getElementById('toast');
+  document.querySelectorAll('.anchor').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const id = a.dataset.copy;
+      const url = window.location.href.split('#')[0] + id;
+      navigator.clipboard.writeText(url).then(() => {
+        toast.textContent = '복사됨: ' + id;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1400);
+      });
+      history.replaceState(null, '', id);
+    });
+  });
+
+  document.getElementById('reset').addEventListener('click', e => {
+    e.preventDefault();
+    if (confirm('체크 다 풀까?')) {
+      boxes.forEach(b => { b.checked = false; localStorage.setItem('mfee_' + b.dataset.key, '0'); });
+      updateProgress();
+    }
+  });
+</script>
+
+</body>
+</html>
