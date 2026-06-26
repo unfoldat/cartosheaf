@@ -20,5 +20,3 @@
 - 웹하드: https://only.webhard.co.kr/login
 - 갭이어 카페 FAQ (멘토링/지원금/지원금증빙/예산변경 등): https://cafe.naver.com/f-e/cafes/31478531/articles/4286?menuid=51&referrerAllArticles=false
 
----
-Made by 갭이어 참가자 26수원주말김태호
