@@ -1025,17 +1025,7 @@
     panel.classList.add('open');
     document.body.classList.add('panel-open');
 
-    const ext = getExt(src);
-
-    if (NON_EMBEDDABLE_EXT.includes(ext)) {
-      // hwp 등은 iframe 미리보기가 불안정하므로 바로 다운로드/새 탭 안내로 전환
-      panelFrame.src = 'about:blank';
-      panelFallback.style.display = 'block';
-      panelFallback.querySelector('a') && (panelFallback.querySelector('a').textContent = '파일 열기/다운로드');
-      return;
-    }
-
-    // PDF 등 브라우저에서 바로 렌더링되는 파일은 기존대로 iframe 미리보기
+    // PDF 등 브라우저에서 바로 렌더링되는 파일만 iframe 미리보기
     panelFallback.style.display = 'none';
     panelFrame.src = url;
 
@@ -1065,6 +1055,12 @@
       const src = this.dataset.src;
       const page = parseInt(this.dataset.page) || 1;
       const title = this.dataset.title || src;
+
+      // hwp 등 브라우저가 못 그리는 파일은 패널 안 열고 바로 새 탭으로
+      if (NON_EMBEDDABLE_EXT.includes(getExt(src))) {
+        window.open(src, '_blank');
+        return;
+      }
 
       // 이미 열린 패널의 같은 문서면 닫기
       if (activeLink === this && panel.classList.contains('open')) {
