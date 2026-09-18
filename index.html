@@ -548,6 +548,22 @@
     flex-basis: 100%; padding-left: 22px;
   }
   body.show-src .meta { display: flex; flex-wrap: wrap; }
+  .guide-source {
+    display: none;
+    margin: 6px 0 14px;
+    padding: 8px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--meta);
+    border-left: 2px solid rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.35);
+    gap: 6px 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  body.show-src .guide-source { display: flex; }
+  .guide-source-label { font-weight: 700; color: var(--ink); }
+  .guide-source-name { color: var(--ink); }
   .anchor { color: var(--meta); text-decoration: none; cursor: pointer; padding: 0 2px; }
   .anchor:hover { color: var(--ink); background: rgba(255,255,255,0.5); }
   .src { color: var(--link); text-decoration: none; border-bottom: 1px dotted var(--link); }
@@ -632,6 +648,20 @@
     <button class="src-toggle" id="srcToggle" aria-pressed="false">[ 출처 보기 ]</button>
   </div>
   <p class="sub">— <b style="color:var(--ink); font-weight:700;">멘토링</b> 진행 후 <b style="color:var(--ink); font-weight:700;">7일 안에</b> 이거 다 하기</p>
+
+  <div class="guide-source">
+    <span class="guide-source-label">기준 가이드 문서</span>
+    <span class="guide-source-name">프로젝트 지원금 정산가이드 최종(0702)</span>
+    <span class="guide-source-pages">참조 범위: p.55~57</span>
+    <a
+      href="https://cafe.naver.com/ggyouthgapyear/4423?tc=shared_link"
+      target="_blank"
+      rel="noopener"
+      class="src cafe"
+    >
+      원본 공지에서 확인
+    </a>
+  </div>
 
   <div class="summary-grid">
     <div class="summary-card">
