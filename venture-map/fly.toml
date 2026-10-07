@@ -1,0 +1,25 @@
+# Fly.io 배포 설정. 앱 이름은 `fly launch --copy-config`가 물어봅니다.
+app = "venture-map"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "3000"
+  DATA_DIR = "/data"
+
+[mounts]
+  source = "venture_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  [[http_service.checks]]
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
